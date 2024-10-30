@@ -1,6 +1,7 @@
 package tests;
 
 import helpers.CourierClient;
+import io.qameta.allure.Description;
 import io.qameta.allure.Step;
 import io.restassured.response.Response;
 import org.junit.BeforeClass;
@@ -18,7 +19,7 @@ public class OrdersListTest {
     }
 
     @Test
-    @Step("Тест на получение списка заказов")
+    @Description("Тест на получение списка заказов и проверка структуры ответа")
     public void testGetOrdersList() {
         Response response = sendGetOrdersRequest();
         validateOrdersListResponse(response);
@@ -37,9 +38,20 @@ public class OrdersListTest {
                 .extract().response();
     }
 
-    @Step("Проверка, что поле orders не пустое")
+    @Step("Проверка структуры и содержания ответа на запрос списка заказов")
     private void validateOrdersListResponse(Response response) {
+        response.then().log().body(); // Логирование тела ответа для удобства проверки
         response.then()
-                .body("orders", not(empty()));
+                .body("orders", not(empty())) // Проверка, что список заказов не пуст
+                .body("orders.size()", greaterThan(0)) // Содержит хотя бы один заказ
+                .body("orders[0].id", notNullValue()) // Проверка, что у заказа есть ID
+                .body("orders[0].firstName", notNullValue()) // Имя клиента
+                .body("orders[0].lastName", notNullValue()) // Фамилия клиента
+                .body("orders[0].address", notNullValue()) // Адрес
+                .body("orders[0].metroStation", notNullValue()) // Станция метро
+                .body("orders[0].phone", notNullValue()) // Телефон
+                .body("orders[0].rentTime", greaterThan(0)) // Время аренды больше 0
+                .body("orders[0].deliveryDate", notNullValue()) // Дата доставки
+                .body("orders[0].track", notNullValue()); // Номер отслеживания
     }
 }

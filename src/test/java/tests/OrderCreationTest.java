@@ -1,6 +1,8 @@
 package tests;
 
 import helpers.CourierClient;
+import helpers.Order;
+import io.qameta.allure.Description;
 import io.qameta.allure.Step;
 import io.restassured.response.Response;
 import org.junit.BeforeClass;
@@ -10,7 +12,7 @@ import org.junit.runners.Parameterized;
 
 import java.util.Arrays;
 import java.util.Collection;
-import java.util.stream.Collectors;
+import java.util.List;
 
 import static io.restassured.RestAssured.given;
 import static org.hamcrest.Matchers.notNullValue;
@@ -18,9 +20,9 @@ import static org.hamcrest.Matchers.notNullValue;
 @RunWith(Parameterized.class)
 public class OrderCreationTest {
 
-    private final String[] color;
+    private final List<String> color;
 
-    public OrderCreationTest(String[] color) {
+    public OrderCreationTest(List<String> color) {
         this.color = color;
     }
 
@@ -33,41 +35,31 @@ public class OrderCreationTest {
     @Parameterized.Parameters
     public static Collection<Object[]> orderData() {
         return Arrays.asList(new Object[][]{
-                {new String[]{"BLACK"}},       // Тест с цветом BLACK
-                {new String[]{"GREY"}},        // Тест с цветом GREY
-                {new String[]{"BLACK", "GREY"}}, // Тест с цветами BLACK и GREY
-                {new String[]{}}               // Тест без указания цвета
+                {Arrays.asList("BLACK")},       // Тест с цветом BLACK
+                {Arrays.asList("GREY")},        // Тест с цветом GREY
+                {Arrays.asList("BLACK", "GREY")}, // Тест с цветами BLACK и GREY
+                {Arrays.asList()}               // Тест без указания цвета
         });
     }
 
     @Test
-    @Step("Тест на создание заказа с различными цветами: {color}")
+    @Description("Тест на создание заказа с различными цветами")
     public void testCreateOrderWithVariousColors() {
-        String colorJson = formatColorJson(color);
-        String requestBody = createOrderRequestBody(colorJson);
-        Response response = sendCreateOrderRequest(requestBody);
+        Order order = createOrderWithColors(color);
+        Response response = sendCreateOrderRequest(order);
         validateOrderCreation(response);
     }
 
-    @Step("Форматирование цвета в JSON: {color}")
-    private String formatColorJson(String[] color) {
-        return Arrays.stream(color)
-                .map(c -> "\"" + c + "\"")
-                .collect(Collectors.joining(", "));
-    }
-
-    @Step("Создание тела запроса для заказа")
-    private String createOrderRequestBody(String colorJson) {
-        return String.format("{ \"firstName\": \"Naruto\", \"lastName\": \"Uchiha\", \"address\": \"Konoha, 142 apt.\", " +
-                "\"metroStation\": 4, \"phone\": \"+7 800 355 35 35\", \"rentTime\": 5, \"deliveryDate\": \"2020-06-06\", " +
-                "\"comment\": \"Saske, come back to Konoha\", \"color\": [%s] }", colorJson);
+    @Step("Создание заказа с цветами: {color}")
+    private Order createOrderWithColors(List<String> color) {
+        return new Order(color);
     }
 
     @Step("Отправка запроса на создание заказа")
-    private Response sendCreateOrderRequest(String requestBody) {
+    private Response sendCreateOrderRequest(Order order) {
         return given()
                 .header("Content-Type", "application/json")
-                .body(requestBody)
+                .body(order)
                 .log().all() // Логирование запроса
                 .when()
                 .post("/api/v1/orders")
